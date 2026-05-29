@@ -22,3 +22,16 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+# Python
+venv/
+.venv/
+__pycache__/
+*.pyc
+
+# ML Models
+*.h5
+*.keras
+
+# Backend environment
+backend/venv/
+backend/.venv/

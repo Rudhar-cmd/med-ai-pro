@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import "./App.css";
 import jsPDF from "jspdf";
-
+import axios from "axios";
 export default function App() {
   const [activePage, setActivePage] = useState("upload");
   const [image, setImage] = useState(null);
@@ -19,32 +19,37 @@ export default function App() {
   };
 
   const handleSubmit = async () => {
-    if (!image) return alert("Upload image first");
+    if (!image) return;
   
     setLoading(true);
   
-    const formData = new FormData();
-    formData.append("file", image);
-  
     try {
-      const response = await fetch("http://localhost:5000/predict", {
-        method: "POST",
-        body: formData,
-      });
+      const formData = new FormData();
+      formData.append("image", image);
   
-      const data = await response.json();
+      const response = await axios.post(
+        "http://127.0.0.1:5001/predict",
+        formData
+      );
   
-      setResult(data);
+      const aiResult = {
+        label: response.data.result,
+        confidence: Math.round(response.data.confidence * 100)
+      };
+  
+      setResult(aiResult);
   
       setHistory((prev) => [
-        { image: preview, result: data },
+        { image: preview, result: aiResult },
         ...prev,
       ]);
+  
     } catch (error) {
-      alert("Backend error");
-    } finally {
-      setLoading(false);
+      console.error(error);
+      alert("Prediction failed");
     }
+  
+    setLoading(false);
   };
 
   const downloadPDF = () => {
@@ -59,69 +64,116 @@ export default function App() {
 
   return (
     <div className="app">
-
-      {/* Sidebar */}
+  
       <div className="sidebar">
-        <div className="logo">MedAI</div>
-
+        <div className="logo">
+          <div className="logo-icon">🩺</div>
+          <div>
+            <h2>MedAI</h2>
+            <span>AI Diagnostics</span>
+          </div>
+        </div>
+  
         <div
           className={`nav-item ${activePage === "dashboard" ? "active" : ""}`}
           onClick={() => setActivePage("dashboard")}
         >
           Dashboard
         </div>
-
+  
         <div
           className={`nav-item ${activePage === "upload" ? "active" : ""}`}
           onClick={() => setActivePage("upload")}
         >
           Upload Scan
         </div>
-
+  
         <div
           className={`nav-item ${activePage === "history" ? "active" : ""}`}
           onClick={() => setActivePage("history")}
         >
           History
         </div>
-
+  
         <div
           className={`nav-item ${activePage === "settings" ? "active" : ""}`}
           onClick={() => setActivePage("settings")}
         >
           Settings
         </div>
-
-        <div className="footer">AI Diagnostic System v1.0</div>
+  
+        <div className="footer">
+          AI Diagnostic System v2.0
+        </div>
       </div>
-
-      {/* Main */}
+  
       <div className="main">
-
+  
         {activePage === "dashboard" && (
-          <div className="container center">
-            <h1>Welcome to MedAI</h1>
-            <p>AI-powered chest disease detection system</p>
+          <div className="dashboard">
+  
+            <div className="hero-card">
+              <h1>🩺 AI Chest Disease Detection</h1>
+              <p>
+                Advanced Deep Learning Diagnostic Platform
+              </p>
+            </div>
+  
+            <div className="stats-grid">
+  
+              <div className="stat-card">
+                <h3>Total Scans</h3>
+                <h1>{history.length}</h1>
+              </div>
+  
+              <div className="stat-card">
+                <h3>Model</h3>
+                <h1>EfficientNet</h1>
+              </div>
+  
+              <div className="stat-card">
+                <h3>Status</h3>
+                <h1>Online</h1>
+              </div>
+  
+            </div>
+  
           </div>
         )}
-
+  
         {activePage === "upload" && (
-          <div className="container split">
-
-            {/* LEFT */}
-            <div className="left">
-
-              {!preview && (
-                <label className="upload-box">
-                  Upload Chest X-ray Image
-                  <input type="file" hidden onChange={handleImageUpload} />
+  
+          <div className="upload-layout">
+  
+            <div className="scan-card">
+  
+              {!preview ? (
+  
+                <label className="upload-zone">
+  
+                  <div>
+                    <h2>📤 Upload X-Ray</h2>
+                    <p>Select chest X-ray image</p>
+                  </div>
+  
+                  <input
+                    type="file"
+                    hidden
+                    onChange={handleImageUpload}
+                  />
+  
                 </label>
-              )}
-
-              {preview && (
-                <>
-                  <img src={preview} className="preview" />
-
+  
+              ) : (
+  
+                <div className="preview-wrapper">
+  
+                  <img
+                    src={preview}
+                    className="preview"
+                    alt=""
+                  />
+  
                   {loading && (
                     <>
                       <div className="grid-overlay"></div>
@@ -129,67 +181,106 @@ export default function App() {
                       <div className="heatmap"></div>
                     </>
                   )}
-                </>
+  
+                </div>
+  
               )}
-
+  
             </div>
-
-            {/* RIGHT */}
-            <div className="right">
-              <h2 className="title">Chest Disease Detection</h2>
-
-              <button className="button" onClick={handleSubmit}>
+  
+            <div className="result-panel">
+  
+              <h2>AI Diagnosis</h2>
+  
+              <button
+                className="button"
+                onClick={handleSubmit}
+              >
                 {loading ? "Analyzing..." : "Detect Disease"}
               </button>
-
-              {loading && <div className="loading"></div>}
-
+  
+              {loading && (
+                <div className="loading"></div>
+              )}
+  
               {result && (
-                <div className="result">
-                  <h3 className="typing">{result.label}</h3>
-
+  
+                <div className="result-card">
+  
+                  <h1>{result.label}</h1>
+  
                   <div className="confidence-bar">
                     <div
                       className="confidence-fill"
-                      style={{ width: `${result.confidence}%` }}
-                    ></div>
+                      style={{
+                        width: `${result.confidence}%`
+                      }}
+                    />
                   </div>
-
-                  <p>{result.confidence}% confidence</p>
-
-                  <button className="button" onClick={downloadPDF}>
+  
+                  <h2>{result.confidence}%</h2>
+  
+                  <p>Confidence Score</p>
+  
+                  <button
+                    className="button"
+                    onClick={downloadPDF}
+                  >
                     Download Report
                   </button>
+  
                 </div>
+  
               )}
+  
             </div>
-
+  
           </div>
+  
         )}
-
+  
         {activePage === "history" && (
-          <div className="container center">
-            <h2>Scan History</h2>
-
+  
+          <div className="history-page">
+  
+            <h1>Scan History</h1>
+  
             {history.map((item, i) => (
-              <div key={i} className="history-item">
-                <img src={item.image} />
+  
+              <div
+                key={i}
+                className="history-card"
+              >
+  
+                <img
+                  src={item.image}
+                  alt=""
+                />
+  
                 <div>
-                  <p>{item.result.label}</p>
-                  <span>{item.result.confidence}%</span>
+                  <h3>{item.result.label}</h3>
+                  <p>
+                    {item.result.confidence}% Confidence
+                  </p>
                 </div>
+  
               </div>
+  
             ))}
+  
           </div>
+  
         )}
-
+  
         {activePage === "settings" && (
-          <div className="container center">
-            <h2>Settings</h2>
-            <p>Coming soon...</p>
+          <div className="settings-page">
+            <h1>Settings</h1>
+            <p>Future Configuration Panel</p>
           </div>
         )}
+  
       </div>
+  
     </div>
   );
 }

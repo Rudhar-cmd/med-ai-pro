@@ -28,7 +28,7 @@ export default function App() {
       formData.append("image", image);
   
       const response = await axios.post(
-        "http://127.0.0.1:5002/predict",
+         "https://med-ai-project.onrender.com/predict",
         formData
       );
   
